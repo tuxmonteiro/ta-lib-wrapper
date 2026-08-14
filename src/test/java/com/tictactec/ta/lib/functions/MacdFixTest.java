@@ -15,6 +15,7 @@ public class MacdFixTest {
         int endIdx = size - 1;
         double[] inreal = new double[size];
         for(int i=0; i<size; i++) { inreal[i] = i; } // Dummy data
+        // TODO: optInoptInSignalPeriod default: 9
         Result result = MacdFix.execute(startIdx, endIdx, inreal, (int)9);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

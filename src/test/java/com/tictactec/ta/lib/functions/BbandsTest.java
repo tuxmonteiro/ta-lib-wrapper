@@ -15,6 +15,10 @@ public class BbandsTest {
         int endIdx = size - 1;
         double[] inreal = new double[size];
         for(int i=0; i<size; i++) { inreal[i] = i; } // Dummy data
+        // TODO: optInoptInTimePeriod default: 5
+        // TODO: optInoptInDeviationsup default: 2.000000e+0
+        // TODO: optInoptInDeviationsdown default: 2.000000e+0
+        // TODO: optInoptInMAType default: 0
         Result result = Bbands.execute(startIdx, endIdx, inreal, (int)5, (double)2.000000e+0, (double)2.000000e+0, (int)0);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

@@ -17,6 +17,8 @@ public class SarTest {
         for(int i=0; i<size; i++) { high[i] = i; } // Dummy data
         double[] low = new double[size];
         for(int i=0; i<size; i++) { low[i] = i; } // Dummy data
+        // TODO: optInoptInAccelerationFactor default: 2.000000e-2
+        // TODO: optInoptInAFMaximum default: 2.000000e-1
         Result result = Sar.execute(startIdx, endIdx, high, low, (double)2.000000e-2, (double)2.000000e-1);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

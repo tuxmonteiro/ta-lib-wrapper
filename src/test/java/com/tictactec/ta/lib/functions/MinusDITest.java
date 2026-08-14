@@ -19,6 +19,7 @@ public class MinusDITest {
         for(int i=0; i<size; i++) { low[i] = i; } // Dummy data
         double[] close = new double[size];
         for(int i=0; i<size; i++) { close[i] = i; } // Dummy data
+        // TODO: optInoptInTimePeriod default: 14
         Result result = MinusDI.execute(startIdx, endIdx, high, low, close, (int)14);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

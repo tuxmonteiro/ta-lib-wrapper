@@ -15,6 +15,8 @@ public class T3Test {
         int endIdx = size - 1;
         double[] inreal = new double[size];
         for(int i=0; i<size; i++) { inreal[i] = i; } // Dummy data
+        // TODO: optInoptInTimePeriod default: 5
+        // TODO: optInoptInVolumeFactor default: 7.000000e-1
         Result result = T3.execute(startIdx, endIdx, inreal, (int)5, (double)7.000000e-1);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

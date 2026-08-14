@@ -19,6 +19,11 @@ public class StochTest {
         for(int i=0; i<size; i++) { low[i] = i; } // Dummy data
         double[] close = new double[size];
         for(int i=0; i<size; i++) { close[i] = i; } // Dummy data
+        // TODO: optInoptInFastKPeriod default: 5
+        // TODO: optInoptInSlowKPeriod default: 3
+        // TODO: optInoptInSlowKMA default: 0
+        // TODO: optInoptInSlowDPeriod default: 3
+        // TODO: optInoptInSlowDMA default: 0
         Result result = Stoch.execute(startIdx, endIdx, high, low, close, (int)5, (int)3, (int)0, (int)3, (int)0);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

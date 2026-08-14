@@ -17,6 +17,7 @@ public class CorrelTest {
         for(int i=0; i<size; i++) { inreal0[i] = i; } // Dummy data
         double[] inreal1 = new double[size];
         for(int i=0; i<size; i++) { inreal1[i] = i; } // Dummy data
+        // TODO: optInoptInTimePeriod default: 30
         Result result = Correl.execute(startIdx, endIdx, inreal0, inreal1, (int)30);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

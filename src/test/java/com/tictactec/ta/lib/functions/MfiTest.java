@@ -21,6 +21,7 @@ public class MfiTest {
         for(int i=0; i<size; i++) { close[i] = i; } // Dummy data
         double[] volume = new double[size];
         for(int i=0; i<size; i++) { volume[i] = i; } // Dummy data
+        // TODO: optInoptInTimePeriod default: 14
         Result result = Mfi.execute(startIdx, endIdx, high, low, close, volume, (int)14);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

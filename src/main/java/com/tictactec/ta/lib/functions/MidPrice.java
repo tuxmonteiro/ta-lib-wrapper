@@ -1,11 +1,12 @@
 package com.tictactec.ta.lib.functions;
 
-import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tictactec.ta.lib.results.*;
 import com.tictactec.ta.lib.TALib;
+
+import java.lang.foreign.*;
 
 /**
  * This class is a wrapper for the TA-Lib function MIDPRICE: Midpoint Price over period.
@@ -13,7 +14,6 @@ import com.tictactec.ta.lib.TALib;
 public class MidPrice {
 
     private static final Logger logger = LoggerFactory.getLogger(MidPrice.class);
-    private static final TALib taLib = TALib.INSTANCE;
 
     public static Result execute(int startIdx, int endIdx, double[] high, double[] low, int optInTimePeriod) throws ArithmeticException, IndexOutOfBoundsException {
         // Input validation
@@ -26,21 +26,29 @@ public class MidPrice {
         if (low == null || low.length <= endIdx) {
             throw new IndexOutOfBoundsException("Input array 'low' is null or too small for endIdx=" + endIdx);
         }
-
-        IntByReference outBegIdx = new IntByReference();
-        IntByReference outNBElement = new IntByReference();
         int allocationSize = high.length;
-        double[] outReal = new double[allocationSize];
-        int retCode = taLib.TA_MIDPRICE(startIdx, endIdx, high, low, optInTimePeriod, outBegIdx, outNBElement, outReal);
-        if (retCode != 0) {
-            logger.error("TA-Lib function MIDPRICE returned error code: {}", retCode);
-            throw new ArithmeticException("TA-Lib function MIDPRICE returned error code: " + retCode);
+
+        try (var arena = Arena.ofConfined()) {
+            var highSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, high);
+            var lowSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, low);
+            var outBegIdx = arena.allocate(ValueLayout.JAVA_INT);
+            var outNBElement = arena.allocate(ValueLayout.JAVA_INT);
+            var outRealSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+
+            int retCode = TALib.call(TALib.TA_MIDPRICE, startIdx, endIdx, highSeg, lowSeg, optInTimePeriod, outBegIdx, outNBElement, outRealSeg);
+            if (retCode != 0) {
+                logger.error("TA-Lib function MIDPRICE returned error code: {}", retCode);
+                throw new ArithmeticException("TA-Lib function MIDPRICE returned error code: " + retCode);
+            }
+
+            double[] outReal = new double[allocationSize];
+            MemorySegment.copy(outRealSeg, ValueLayout.JAVA_DOUBLE, 0, outReal, 0, allocationSize);
+
+            return RealResult.builder()
+                .outReal(outReal)
+                .outBegIdx(outBegIdx.get(ValueLayout.JAVA_INT, 0))
+                .outNBElement(outNBElement.get(ValueLayout.JAVA_INT, 0))
+                .build();
         }
-        Result result = RealResult.builder()
-            .outReal(outReal)
-            .outBegIdx(outBegIdx.getValue())
-            .outNBElement(outNBElement.getValue())
-            .build();
-        return result;
     }
 }

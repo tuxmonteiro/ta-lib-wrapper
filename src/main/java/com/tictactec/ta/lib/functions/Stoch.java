@@ -1,41 +1,20 @@
 package com.tictactec.ta.lib.functions;
 
-import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tictactec.ta.lib.results.*;
 import com.tictactec.ta.lib.TALib;
 
+import java.lang.foreign.*;
 
 /**
  * This class is a wrapper for the TA-Lib function STOCH: Stochastic.
- *
- * @author fibonsai
- * @since 0.6.4
  */
 public class Stoch {
 
     private static final Logger logger = LoggerFactory.getLogger(Stoch.class);
-    private static final TALib taLib = TALib.INSTANCE;
 
-    /**
-     * Calculates the Stochastic of a given input series.
-     *
-     * @param startIdx the start index for the calculation
-     * @param endIdx the end index for the calculation
-     * @param high the input series of high prices
-     * @param low the input series of low prices
-     * @param close the input series of close prices
-     * @param optInFastKPeriod the time period for the Fast %K
-     * @param optInSlowKPeriod the time period for the Slow %K
-     * @param optInSlowKMA the moving average type for the Slow %K
-     * @param optInSlowDPeriod the time period for the Slow %D
-     * @param optInSlowDMA the moving average type for the Slow %D
-     * @return a Result object containing the calculated Stochastic
-     * @throws ArithmeticException if the TA-Lib function returns an error code
-     * @throws IndexOutOfBoundsException if the start or end index is out of bounds
-     */
     public static Result execute(int startIdx, int endIdx, double[] high, double[] low, double[] close, int optInFastKPeriod, int optInSlowKPeriod, int optInSlowKMA, int optInSlowDPeriod, int optInSlowDMA) throws ArithmeticException, IndexOutOfBoundsException {
         // Input validation
         if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) {
@@ -50,23 +29,34 @@ public class Stoch {
         if (close == null || close.length <= endIdx) {
             throw new IndexOutOfBoundsException("Input array 'close' is null or too small for endIdx=" + endIdx);
         }
-
-        IntByReference outBegIdx = new IntByReference();
-        IntByReference outNBElement = new IntByReference();
         int allocationSize = high.length;
-        double[] outSlowK = new double[allocationSize];
-        double[] outSlowD = new double[allocationSize];
-        int retCode = taLib.TA_STOCH(startIdx, endIdx, high, low, close, optInFastKPeriod, optInSlowKPeriod, optInSlowKMA, optInSlowDPeriod, optInSlowDMA, outBegIdx, outNBElement, outSlowK, outSlowD);
-        if (retCode != 0) {
-            logger.error("TA-Lib function STOCH returned error code: {}", retCode);
-            throw new ArithmeticException("TA-Lib function STOCH returned error code: " + retCode);
+
+        try (var arena = Arena.ofConfined()) {
+            var highSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, high);
+            var lowSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, low);
+            var closeSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, close);
+            var outBegIdx = arena.allocate(ValueLayout.JAVA_INT);
+            var outNBElement = arena.allocate(ValueLayout.JAVA_INT);
+            var outSlowKSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+            var outSlowDSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+
+            int retCode = TALib.call(TALib.TA_STOCH, startIdx, endIdx, highSeg, lowSeg, closeSeg, optInFastKPeriod, optInSlowKPeriod, optInSlowKMA, optInSlowDPeriod, optInSlowDMA, outBegIdx, outNBElement, outSlowKSeg, outSlowDSeg);
+            if (retCode != 0) {
+                logger.error("TA-Lib function STOCH returned error code: {}", retCode);
+                throw new ArithmeticException("TA-Lib function STOCH returned error code: " + retCode);
+            }
+
+            double[] outSlowK = new double[allocationSize];
+            MemorySegment.copy(outSlowKSeg, ValueLayout.JAVA_DOUBLE, 0, outSlowK, 0, allocationSize);
+            double[] outSlowD = new double[allocationSize];
+            MemorySegment.copy(outSlowDSeg, ValueLayout.JAVA_DOUBLE, 0, outSlowD, 0, allocationSize);
+
+            return SlowResult.builder()
+                .outSlowK(outSlowK)
+                .outSlowD(outSlowD)
+                .outBegIdx(outBegIdx.get(ValueLayout.JAVA_INT, 0))
+                .outNBElement(outNBElement.get(ValueLayout.JAVA_INT, 0))
+                .build();
         }
-        Result result = SlowResult.builder()
-            .outSlowK(outSlowK)
-            .outSlowD(outSlowD)
-            .outBegIdx(outBegIdx.getValue())
-            .outNBElement(outNBElement.getValue())
-            .build();
-        return result;
     }
 }

@@ -17,6 +17,9 @@ public class MovingAverageVariablePeriodTest {
         for(int i=0; i<size; i++) { inreal[i] = i; } // Dummy data
         double[] inperiods = new double[size];
         for(int i=0; i<size; i++) { inperiods[i] = i; } // Dummy data
+        // TODO: optInoptInMinimumPeriod default: 2
+        // TODO: optInoptInMaximumPeriod default: 30
+        // TODO: optInoptInMAType default: 0
         Result result = MovingAverageVariablePeriod.execute(startIdx, endIdx, inreal, inperiods, (int)2, (int)30, (int)0);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

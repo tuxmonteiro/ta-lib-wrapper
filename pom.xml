@@ -20,28 +20,19 @@
 
     <groupId>com.tictactec.ta.lib</groupId>
     <artifactId>ta-lib-jna</artifactId>
-    <version>0.6.4-20251203.1</version>
+    <version>0.7.0-20251203.1</version>
     <packaging>jar</packaging>
 
-    <name>TA-Lib JNA Wrapper</name>
-    <description>A JNA-based wrapper for the TA-Lib library.</description>
+    <name>TA-Lib FFM Wrapper</name>
+    <description>A Java 22+ Foreign Function &amp; Memory API wrapper for the TA-Lib library.</description>
 
     <properties>
-        <java.version>21</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <java.version>22</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>5.18.1</version>
-        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -83,8 +74,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                     <parameters>true</parameters>
                 </configuration>
             </plugin>
@@ -92,6 +82,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.4</version>
+                <configuration>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -133,7 +126,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>3.12.0</version>
             </plugin>
         </plugins>
     </reporting>

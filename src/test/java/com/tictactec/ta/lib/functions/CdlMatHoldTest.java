@@ -21,6 +21,7 @@ public class CdlMatHoldTest {
         for(int i=0; i<size; i++) { low[i] = i; } // Dummy data
         double[] close = new double[size];
         for(int i=0; i<size; i++) { close[i] = i; } // Dummy data
+        // TODO: optInoptInPenetration default: 5.000000e-1
         Result result = CdlMatHold.execute(startIdx, endIdx, open, high, low, close, (double)5.000000e-1);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

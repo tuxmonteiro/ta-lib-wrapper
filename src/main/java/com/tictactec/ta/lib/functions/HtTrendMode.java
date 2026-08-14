@@ -1,11 +1,12 @@
 package com.tictactec.ta.lib.functions;
 
-import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tictactec.ta.lib.results.*;
 import com.tictactec.ta.lib.TALib;
+
+import java.lang.foreign.*;
 
 /**
  * This class is a wrapper for the TA-Lib function HT_TRENDMODE: Hilbert Transform - Trend vs Cycle Mode.
@@ -13,7 +14,6 @@ import com.tictactec.ta.lib.TALib;
 public class HtTrendMode {
 
     private static final Logger logger = LoggerFactory.getLogger(HtTrendMode.class);
-    private static final TALib taLib = TALib.INSTANCE;
 
     public static Result execute(int startIdx, int endIdx, double[] inreal) throws ArithmeticException, IndexOutOfBoundsException {
         // Input validation
@@ -23,21 +23,28 @@ public class HtTrendMode {
         if (inreal == null || inreal.length <= endIdx) {
             throw new IndexOutOfBoundsException("Input array 'inreal' is null or too small for endIdx=" + endIdx);
         }
-
-        IntByReference outBegIdx = new IntByReference();
-        IntByReference outNBElement = new IntByReference();
         int allocationSize = inreal.length;
-        int[] outInteger = new int[allocationSize];
-        int retCode = taLib.TA_HT_TRENDMODE(startIdx, endIdx, inreal, outBegIdx, outNBElement, outInteger);
-        if (retCode != 0) {
-            logger.error("TA-Lib function HT_TRENDMODE returned error code: {}", retCode);
-            throw new ArithmeticException("TA-Lib function HT_TRENDMODE returned error code: " + retCode);
+
+        try (var arena = Arena.ofConfined()) {
+            var inrealSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, inreal);
+            var outBegIdx = arena.allocate(ValueLayout.JAVA_INT);
+            var outNBElement = arena.allocate(ValueLayout.JAVA_INT);
+            var outIntegerSeg = arena.allocateFrom(ValueLayout.JAVA_INT, new int[allocationSize]);
+
+            int retCode = TALib.call(TALib.TA_HT_TRENDMODE, startIdx, endIdx, inrealSeg, outBegIdx, outNBElement, outIntegerSeg);
+            if (retCode != 0) {
+                logger.error("TA-Lib function HT_TRENDMODE returned error code: {}", retCode);
+                throw new ArithmeticException("TA-Lib function HT_TRENDMODE returned error code: " + retCode);
+            }
+
+            int[] outInteger = new int[allocationSize];
+            MemorySegment.copy(outIntegerSeg, ValueLayout.JAVA_INT, 0, outInteger, 0, allocationSize);
+
+            return IntegerResult.builder()
+                .outInteger(outInteger)
+                .outBegIdx(outBegIdx.get(ValueLayout.JAVA_INT, 0))
+                .outNBElement(outNBElement.get(ValueLayout.JAVA_INT, 0))
+                .build();
         }
-        Result result = IntegerResult.builder()
-            .outInteger(outInteger)
-            .outBegIdx(outBegIdx.getValue())
-            .outNBElement(outNBElement.getValue())
-            .build();
-        return result;
     }
 }

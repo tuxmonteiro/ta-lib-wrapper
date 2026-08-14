@@ -1,11 +1,12 @@
 package com.tictactec.ta.lib.functions;
 
-import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tictactec.ta.lib.results.*;
 import com.tictactec.ta.lib.TALib;
+
+import java.lang.foreign.*;
 
 /**
  * This class is a wrapper for the TA-Lib function MA: Moving average.
@@ -13,7 +14,6 @@ import com.tictactec.ta.lib.TALib;
 public class MovingAverage {
 
     private static final Logger logger = LoggerFactory.getLogger(MovingAverage.class);
-    private static final TALib taLib = TALib.INSTANCE;
 
     public static Result execute(int startIdx, int endIdx, double[] inreal, int optInTimePeriod, int optInMAType) throws ArithmeticException, IndexOutOfBoundsException {
         // Input validation
@@ -23,21 +23,28 @@ public class MovingAverage {
         if (inreal == null || inreal.length <= endIdx) {
             throw new IndexOutOfBoundsException("Input array 'inreal' is null or too small for endIdx=" + endIdx);
         }
-
-        IntByReference outBegIdx = new IntByReference();
-        IntByReference outNBElement = new IntByReference();
         int allocationSize = inreal.length;
-        double[] outReal = new double[allocationSize];
-        int retCode = taLib.TA_MA(startIdx, endIdx, inreal, optInTimePeriod, optInMAType, outBegIdx, outNBElement, outReal);
-        if (retCode != 0) {
-            logger.error("TA-Lib function MA returned error code: {}", retCode);
-            throw new ArithmeticException("TA-Lib function MA returned error code: " + retCode);
+
+        try (var arena = Arena.ofConfined()) {
+            var inrealSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, inreal);
+            var outBegIdx = arena.allocate(ValueLayout.JAVA_INT);
+            var outNBElement = arena.allocate(ValueLayout.JAVA_INT);
+            var outRealSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+
+            int retCode = TALib.call(TALib.TA_MA, startIdx, endIdx, inrealSeg, optInTimePeriod, optInMAType, outBegIdx, outNBElement, outRealSeg);
+            if (retCode != 0) {
+                logger.error("TA-Lib function MA returned error code: {}", retCode);
+                throw new ArithmeticException("TA-Lib function MA returned error code: " + retCode);
+            }
+
+            double[] outReal = new double[allocationSize];
+            MemorySegment.copy(outRealSeg, ValueLayout.JAVA_DOUBLE, 0, outReal, 0, allocationSize);
+
+            return RealResult.builder()
+                .outReal(outReal)
+                .outBegIdx(outBegIdx.get(ValueLayout.JAVA_INT, 0))
+                .outNBElement(outNBElement.get(ValueLayout.JAVA_INT, 0))
+                .build();
         }
-        Result result = RealResult.builder()
-            .outReal(outReal)
-            .outBegIdx(outBegIdx.getValue())
-            .outNBElement(outNBElement.getValue())
-            .build();
-        return result;
     }
 }

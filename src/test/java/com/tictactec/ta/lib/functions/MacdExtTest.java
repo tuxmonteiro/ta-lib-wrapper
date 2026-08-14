@@ -15,6 +15,12 @@ public class MacdExtTest {
         int endIdx = size - 1;
         double[] inreal = new double[size];
         for(int i=0; i<size; i++) { inreal[i] = i; } // Dummy data
+        // TODO: optInoptInFastPeriod default: 12
+        // TODO: optInoptInFastMA default: 0
+        // TODO: optInoptInSlowPeriod default: 26
+        // TODO: optInoptInSlowMA default: 0
+        // TODO: optInoptInSignalPeriod default: 9
+        // TODO: optInoptInSignalMA default: 0
         Result result = MacdExt.execute(startIdx, endIdx, inreal, (int)12, (int)0, (int)26, (int)0, (int)9, (int)0);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

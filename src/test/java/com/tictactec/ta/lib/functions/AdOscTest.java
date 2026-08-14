@@ -21,6 +21,8 @@ public class AdOscTest {
         for(int i=0; i<size; i++) { close[i] = i; } // Dummy data
         double[] volume = new double[size];
         for(int i=0; i<size; i++) { volume[i] = i; } // Dummy data
+        // TODO: optInoptInFastPeriod default: 3
+        // TODO: optInoptInSlowPeriod default: 10
         Result result = AdOsc.execute(startIdx, endIdx, high, low, close, volume, (int)3, (int)10);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.

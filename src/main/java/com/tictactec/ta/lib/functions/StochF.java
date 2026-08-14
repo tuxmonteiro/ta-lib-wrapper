@@ -1,39 +1,20 @@
 package com.tictactec.ta.lib.functions;
 
-import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tictactec.ta.lib.results.*;
 import com.tictactec.ta.lib.TALib;
 
+import java.lang.foreign.*;
 
 /**
  * This class is a wrapper for the TA-Lib function STOCHF: Stochastic Fast.
- *
- * @author fibonsai
- * @since 0.6.4
  */
 public class StochF {
 
     private static final Logger logger = LoggerFactory.getLogger(StochF.class);
-    private static final TALib taLib = TALib.INSTANCE;
 
-    /**
-     * Calculates the Stochastic Fast of a given input series.
-     *
-     * @param startIdx the start index for the calculation
-     * @param endIdx the end index for the calculation
-     * @param high the input series of high prices
-     * @param low the input series of low prices
-     * @param close the input series of close prices
-     * @param optInFastKPeriod the time period for the Fast %K
-     * @param optInFastDPeriod the time period for the Fast %D
-     * @param optInFastDMA the moving average type for the Fast %D
-     * @return a Result object containing the calculated Stochastic Fast
-     * @throws ArithmeticException if the TA-Lib function returns an error code
-     * @throws IndexOutOfBoundsException if the start or end index is out of bounds
-     */
     public static Result execute(int startIdx, int endIdx, double[] high, double[] low, double[] close, int optInFastKPeriod, int optInFastDPeriod, int optInFastDMA) throws ArithmeticException, IndexOutOfBoundsException {
         // Input validation
         if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) {
@@ -48,23 +29,34 @@ public class StochF {
         if (close == null || close.length <= endIdx) {
             throw new IndexOutOfBoundsException("Input array 'close' is null or too small for endIdx=" + endIdx);
         }
-
-        IntByReference outBegIdx = new IntByReference();
-        IntByReference outNBElement = new IntByReference();
         int allocationSize = high.length;
-        double[] outFastK = new double[allocationSize];
-        double[] outFastD = new double[allocationSize];
-        int retCode = taLib.TA_STOCHF(startIdx, endIdx, high, low, close, optInFastKPeriod, optInFastDPeriod, optInFastDMA, outBegIdx, outNBElement, outFastK, outFastD);
-        if (retCode != 0) {
-            logger.error("TA-Lib function STOCHF returned error code: {}", retCode);
-            throw new ArithmeticException("TA-Lib function STOCHF returned error code: " + retCode);
+
+        try (var arena = Arena.ofConfined()) {
+            var highSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, high);
+            var lowSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, low);
+            var closeSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, close);
+            var outBegIdx = arena.allocate(ValueLayout.JAVA_INT);
+            var outNBElement = arena.allocate(ValueLayout.JAVA_INT);
+            var outFastKSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+            var outFastDSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+
+            int retCode = TALib.call(TALib.TA_STOCHF, startIdx, endIdx, highSeg, lowSeg, closeSeg, optInFastKPeriod, optInFastDPeriod, optInFastDMA, outBegIdx, outNBElement, outFastKSeg, outFastDSeg);
+            if (retCode != 0) {
+                logger.error("TA-Lib function STOCHF returned error code: {}", retCode);
+                throw new ArithmeticException("TA-Lib function STOCHF returned error code: " + retCode);
+            }
+
+            double[] outFastK = new double[allocationSize];
+            MemorySegment.copy(outFastKSeg, ValueLayout.JAVA_DOUBLE, 0, outFastK, 0, allocationSize);
+            double[] outFastD = new double[allocationSize];
+            MemorySegment.copy(outFastDSeg, ValueLayout.JAVA_DOUBLE, 0, outFastD, 0, allocationSize);
+
+            return FastResult.builder()
+                .outFastK(outFastK)
+                .outFastD(outFastD)
+                .outBegIdx(outBegIdx.get(ValueLayout.JAVA_INT, 0))
+                .outNBElement(outNBElement.get(ValueLayout.JAVA_INT, 0))
+                .build();
         }
-        Result result = FastResult.builder()
-            .outFastK(outFastK)
-            .outFastD(outFastD)
-            .outBegIdx(outBegIdx.getValue())
-            .outNBElement(outNBElement.getValue())
-            .build();
-        return result;
     }
 }

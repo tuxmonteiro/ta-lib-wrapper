@@ -1,22 +1,19 @@
 package com.tictactec.ta.lib.functions;
 
-import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tictactec.ta.lib.results.*;
 import com.tictactec.ta.lib.TALib;
 
+import java.lang.foreign.*;
+
 /**
  * This class is a wrapper for the TA-Lib function AROON: Aroon.
- *
- * @author fibonsai
- * @since 0.6.4
  */
 public class Aroon {
 
     private static final Logger logger = LoggerFactory.getLogger(Aroon.class);
-    private static final TALib taLib = TALib.INSTANCE;
 
     public static Result execute(int startIdx, int endIdx, double[] high, double[] low, int optInTimePeriod) throws ArithmeticException, IndexOutOfBoundsException {
         // Input validation
@@ -29,23 +26,33 @@ public class Aroon {
         if (low == null || low.length <= endIdx) {
             throw new IndexOutOfBoundsException("Input array 'low' is null or too small for endIdx=" + endIdx);
         }
-
-        IntByReference outBegIdx = new IntByReference();
-        IntByReference outNBElement = new IntByReference();
         int allocationSize = high.length;
-        double[] outAroonDown = new double[allocationSize];
-        double[] outAroonUp = new double[allocationSize];
-        int retCode = taLib.TA_AROON(startIdx, endIdx, high, low, optInTimePeriod, outBegIdx, outNBElement, outAroonDown, outAroonUp);
-        if (retCode != 0) {
-            logger.error("TA-Lib function AROON returned error code: {}", retCode);
-            throw new ArithmeticException("TA-Lib function AROON returned error code: " + retCode);
+
+        try (var arena = Arena.ofConfined()) {
+            var highSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, high);
+            var lowSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, low);
+            var outBegIdx = arena.allocate(ValueLayout.JAVA_INT);
+            var outNBElement = arena.allocate(ValueLayout.JAVA_INT);
+            var outAroonDownSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+            var outAroonUpSeg = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, new double[allocationSize]);
+
+            int retCode = TALib.call(TALib.TA_AROON, startIdx, endIdx, highSeg, lowSeg, optInTimePeriod, outBegIdx, outNBElement, outAroonDownSeg, outAroonUpSeg);
+            if (retCode != 0) {
+                logger.error("TA-Lib function AROON returned error code: {}", retCode);
+                throw new ArithmeticException("TA-Lib function AROON returned error code: " + retCode);
+            }
+
+            double[] outAroonDown = new double[allocationSize];
+            MemorySegment.copy(outAroonDownSeg, ValueLayout.JAVA_DOUBLE, 0, outAroonDown, 0, allocationSize);
+            double[] outAroonUp = new double[allocationSize];
+            MemorySegment.copy(outAroonUpSeg, ValueLayout.JAVA_DOUBLE, 0, outAroonUp, 0, allocationSize);
+
+            return AroonResult.builder()
+                .outAroonDown(outAroonDown)
+                .outAroonUp(outAroonUp)
+                .outBegIdx(outBegIdx.get(ValueLayout.JAVA_INT, 0))
+                .outNBElement(outNBElement.get(ValueLayout.JAVA_INT, 0))
+                .build();
         }
-        Result result = AroonResult.builder()
-            .outAroonDown(outAroonDown)
-            .outAroonUp(outAroonUp)
-            .outBegIdx(outBegIdx.getValue())
-            .outNBElement(outNBElement.getValue())
-            .build();
-        return result;
     }
 }

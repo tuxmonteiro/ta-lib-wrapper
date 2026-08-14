@@ -15,6 +15,8 @@ public class VarianceTest {
         int endIdx = size - 1;
         double[] inreal = new double[size];
         for(int i=0; i<size; i++) { inreal[i] = i; } // Dummy data
+        // TODO: optInoptInTimePeriod default: 5
+        // TODO: optInoptInDeviations default: 1.000000e+0
         Result result = Variance.execute(startIdx, endIdx, inreal, (int)5, (double)1.000000e+0);
         assertNotNull(result);
         // Further assertions can be added here if expected values are known.
