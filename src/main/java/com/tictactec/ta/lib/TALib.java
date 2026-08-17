@@ -2,6 +2,8 @@ package com.tictactec.ta.lib;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Core TA-Lib native interface using the Java 22+ Foreign Function &amp; Memory API.
@@ -25,8 +27,68 @@ public final class TALib {
     public static final SymbolLookup LOOKUP;
 
     static {
-        System.loadLibrary("ta-lib");
+        try {
+            System.loadLibrary("ta-lib");
+        } catch (UnsatisfiedLinkError e) {
+            // Fallback: search common system library paths so the native
+            // library is discovered even when java.library.path (and
+            // LD_LIBRARY_PATH on Linux) does not include the installation dir.
+            loadFromCommonPaths("ta-lib");
+        }
         LOOKUP = SymbolLookup.loaderLookup();
+    }
+
+    /**
+     * Searches common system library directories for the named native library
+     * and loads it via {@link System#load(String)}.
+     *
+     * @param libName the library name without prefix/suffix (e.g. {@code "ta-lib"})
+     * @throws UnsatisfiedLinkError if the library cannot be found in any
+     *         of the well-known locations
+     */
+    private static void loadFromCommonPaths(String libName) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        String libFile;
+        String[] searchPaths;
+        if (osName.contains("win")) {
+            libFile = libName + ".dll";
+            searchPaths = new String[0];
+        } else if (osName.contains("mac")) {
+            libFile = "lib" + libName + ".dylib";
+            searchPaths = new String[]{"/usr/local/lib", "/opt/homebrew/lib", "/usr/lib"};
+        } else {
+            libFile = "lib" + libName + ".so";
+            searchPaths = new String[]{"/usr/lib/x86_64-linux-gnu", "/usr/lib", "/usr/local/lib", "/lib/x86_64-linux-gnu", "/lib"};
+        }
+
+        for (String dir : searchPaths) {
+            Path candidate = Path.of(dir, libFile);
+            if (Files.isReadable(candidate)) {
+                System.load(candidate.toAbsolutePath().toString());
+                return;
+            }
+        }
+
+        // Also honour LD_LIBRARY_PATH / DYLD_LIBRARY_PATH as a last resort.
+        String envPath = osName.contains("win") ? "" : System.getenv("LD_LIBRARY_PATH");
+        if (osName.contains("mac") && envPath.isEmpty()) {
+            envPath = System.getenv("DYLD_LIBRARY_PATH");
+        }
+        if (!envPath.isEmpty()) {
+            String sep = System.getProperty("path.separator");
+            for (String dir : envPath.split(sep)) {
+                Path candidate = Path.of(dir, libFile);
+                if (Files.isReadable(candidate)) {
+                    System.load(candidate.toAbsolutePath().toString());
+                    return;
+                }
+            }
+        }
+
+        String searched = String.join(", ", searchPaths);
+        throw new UnsatisfiedLinkError(
+            "Native library '" + libName + "' not found in java.library.path, "
+                + "common system paths [" + searched + "], or LD_LIBRARY_PATH.");
     }
 
     private static MethodHandle downcall(String name, FunctionDescriptor fd) {

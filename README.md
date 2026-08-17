@@ -89,8 +89,21 @@ This compiles the source, runs the tests, and packages the project into a JAR.
 
 ## Running the Tests
 
-Because the wrapper uses `System.loadLibrary("ta-lib")`, you must make the
-native library discoverable to the JVM.  Two approaches work:
+The wrapper uses `System.loadLibrary("ta-lib")` to load the native library.
+At class-initialisation time `TALib` first tries the standard
+`System.loadLibrary` mechanism (i.e. `java.library.path` and, on Linux,
+`LD_LIBRARY_PATH`).  If that fails it automatically searches common system
+library directories — for example `/usr/lib/x86_64-linux-gnu`,
+`/usr/lib`, `/usr/local/lib`, `/lib` on Linux, or `/usr/local/lib`,
+`/opt/homebrew/lib`, `/usr/lib` on macOS — so in most cases **no extra
+configuration is required**.  Simply run:
+
+```bash
+mvn test
+```
+
+If your library lives somewhere outside the searched paths, make it
+discoverable to the JVM.  Two approaches work:
 
 **Option A — `LD_LIBRARY_PATH` (Linux / macOS):**
 
@@ -107,11 +120,9 @@ mvn test -DargLine="-Djava.library.path=/usr/local/lib"
 
 > **Note:** On Java 22+, `System.loadLibrary` is a *restricted method*.
 > The surefire configuration in `pom.xml` already includes
-> `--enable-native-access=ALL-UNNAMED` to suppress the warning, but if you
-> run tests manually you may need to pass that flag too:
-> ```bash
-> mvn test -DargLine="--enable-native-access=ALL-UNNAMED"
-> ```
+> `--enable-native-access=ALL-UNNAMED` via the `@{argLine}` placeholder,
+> so it is automatically merged with any `-DargLine` you pass on the
+> command line.  No manual `--enable-native-access` flag is needed.
 
 ---
 
