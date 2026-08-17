@@ -19,8 +19,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.tictactec.ta.lib</groupId>
-    <artifactId>ta-lib-jna</artifactId>
-    <version>0.7.0-20260817.1</version>
+    <artifactId>ta-lib-wrapper</artifactId>
+    <version>0.7.0-20260817.2</version>
     <packaging>jar</packaging>
 
     <name>TA-Lib FFM Wrapper</name>
