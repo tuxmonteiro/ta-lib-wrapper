@@ -134,9 +134,9 @@
 
     <distributionManagement>
         <repository>
-            <id>ta-lib-jna</id>
-            <name>ta-lib-jna</name>
-            <url>https://maven.pkg.github.com/tuxmonteiro/ta-lib-jna</url>
+            <id>ta-lib-wrapper</id>
+            <name>ta-lib-wrapper</name>
+            <url>https://maven.pkg.github.com/tuxmonteiro/ta-lib-wrapper</url>
         </repository>
     </distributionManagement>
 
