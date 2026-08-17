@@ -154,26 +154,26 @@ ta-lib-jna/
 ### Core architecture
 
 ```
-┌─────────────────────────────────────────────┐
+┌──────────────────────────────────────────────┐
 │  Function wrapper class                      │  ← public API: .execute(...)
 │  (e.g. Sma, Bbands, Macd, …)                 │
 │                                              │
-│  • Validates inputs                         │
-│  • Allocates native memory via Arena        │
-│  • Copies Java arrays → MemorySegment       │
-│  • Calls TALib.call(handle, …)              │
-│  • Copies results back & builds Result      │
-└─────────────────────────┬───────────────────┘
+│  • Validates inputs                          │
+│  • Allocates native memory via Arena         │
+│  • Copies Java arrays → MemorySegment        │
+│  • Calls TALib.call(handle, …)               │
+│  • Copies results back & builds Result       │
+└─────────────────────────┬────────────────────┘
                           │
                           ▼
-┌─────────────────────────────────────────────┐
+┌──────────────────────────────────────────────┐
 │  TALib (FFM core)                            │
 │                                              │
-│  • Linker.nativeLinker()                   │
-│  • SymbolLookup.loaderLookup()             │
-│  • MethodHandle per TA_* function           │
-│  • call(handle, args…) → invokeWithArguments│
-└─────────────────────────────────────────────┘
+│  • Linker.nativeLinker()                     │
+│  • SymbolLookup.loaderLookup()               │
+│  • MethodHandle per TA_* function            │
+│  • call(handle, args…) → invokeWithArguments │
+└──────────────────────────────────────────────┘
 ```
 
 ---
